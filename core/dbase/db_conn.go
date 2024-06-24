@@ -3,6 +3,7 @@ package dbase
 import (
 	"database/sql"
 	"fmt"
+
 	"github.com/rohanthewiz/logger"
 	"github.com/rohanthewiz/serr"
 )

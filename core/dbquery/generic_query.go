@@ -4,8 +4,9 @@ package dbquery
 import (
 	"database/sql"
 	"fmt"
-	"github.com/rohanthewiz/serr"
 	"time"
+
+	"github.com/rohanthewiz/serr"
 )
 
 type QueryOptions struct {

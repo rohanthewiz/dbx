@@ -3,40 +3,36 @@ package bench
 import (
 	"database/sql"
 	"dbx/cfg"
-	"dbx/dbase"
+	"dbx/core/dbase"
 
+	"github.com/rohanthewiz/logger"
 	"github.com/rohanthewiz/serr"
 )
 
-func connectAndPing(dbType string, port string, err error) (*sql.DB, error) {
-	var dbCfg dbase.ConnectionCfg
-
-	if dbType == cfg.AlloyDBtype {
-		dbCfg = dbase.ConnectionCfg{
-			Host:     "localhost",
-			Port:     port,
-			User:     "gwsadmin",
-			Password: "adminer",
-			DBName:   "myDB",
-		}
-	} else {
-		dbCfg = dbase.ConnectionCfg{
-			Host:     "localhost",
-			Port:     port,
-			User:     "gws",
-			Password: "tester",
-			DBName:   "myDB",
-		}
+func connectAndPing(opts cfg.Options) (*sql.DB, error) {
+	dbCfg := dbase.ConnectionCfg{
+		Host:     opts.Host,
+		Port:     opts.Port,
+		User:     opts.User,
+		Password: opts.Password,
+		DBName:   opts.DBName,
 	}
 
 	db, err := dbase.Connect(dbCfg)
 	if err != nil {
-		return nil, serr.Wrap(err, "error connecting to "+dbType)
+		return nil, serr.Wrap(err, "error connecting to "+opts.DBType)
 	}
 
 	err = db.Ping()
 	if err != nil {
-		return nil, serr.Wrap(err, "unable to ping db", "dbType", dbType, "database", dbCfg.DBName)
+		return nil, serr.Wrap(err, "unable to ping db", "dbType", opts.DBType, "database", dbCfg.DBName)
 	}
+
+	version, err := dbase.GetDBVersion(db)
+	if err != nil {
+		return nil, serr.Wrap(err, "error getting db version")
+	}
+	logger.Info("DB: " + version)
+
 	return db, nil
 }

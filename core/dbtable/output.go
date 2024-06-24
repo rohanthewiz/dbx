@@ -2,10 +2,11 @@ package dbtable
 
 import (
 	"fmt"
-	"github.com/rohanthewiz/serr"
 	"os"
 	"strings"
 	"time"
+
+	"github.com/rohanthewiz/serr"
 )
 
 const (
@@ -17,19 +18,14 @@ const (
 
 // FileConfig ... structure to store files info
 type FileConfig struct {
-	FileNamePattern     string //Only for CSV reading: instead of exact name we can use pattern. Pattern supposed to find one file only
-	FileName            string //Name of File which was supposed to read/write. If pattern is provided while reading for csv, then FileName should be empty
-	Delimiter           string //Delimter to read/write file
-	EscapeCharacter     string
-	IgnoreCaseForHeader bool   //Optional: while reading, converts header values to lower case cols in dbtbl
-	SanitizeHeader      bool   //Optional: For csv files, headernames will be sanitized
-	Limit               int64  //Optional: while reading, this will be used to read top n records from file
-	NoQuotedStrings     bool   //While creating if value is false, text type values will be written without quotes (")
-	CreateEmptyFile     bool   //Optional: while writing if this flag enabled it will write cols as headers even rows are 0
-	LazyQuotesRequired  bool   //If LazyQuotes is true, a quote may appear in an unquoted field and a non-doubled quote may appear in a quoted field.
-	IgnoreMissingFile   bool   //Optional: While reading CSV file, if value is true, then reader plugin won't fail if file not present
-	FileCreateMode      string //Optional: Default: Writeonly. while writing will be used if needed to
-	IgnoreHeader        bool   //Optional: Default: false. while writing, if set true, WriterPlugin will not create header using columns
+	FileNamePattern string // Only for CSV reading: instead of exact name we can use pattern. Pattern supposed to find one file only
+	FileName        string // Name of File which was supposed to read/write. If pattern is provided while reading for csv, then FileName should be empty
+	Delimiter       string // Delimter to read/write file
+	Limit           int64  // Optional: while reading, this will be used to read top n records from file
+	NoQuotedStrings bool   // While creating if value is false, text type values will be written without quotes (")
+	CreateEmptyFile bool   // Optional: while writing if this flag enabled it will write cols as headers even rows are 0
+	FileCreateMode  string // Optional: Default: Writeonly. while writing will be used if needed to
+	IgnoreHeader    bool   // Optional: Default: false. while writing, if set true, WriterPlugin will not create header using columns
 }
 
 func (dbt *DBTable) WriteCSV(cfg *FileConfig) (err error) {
@@ -57,13 +53,15 @@ func (dbt *DBTable) WriteCSV(cfg *FileConfig) (err error) {
 	if err != nil {
 		return serr.Wrap(err)
 	}
-	defer f.Close()
+	defer func() {
+		_ = f.Close()
+	}()
 
 	if cfg.Delimiter == "" {
 		cfg.Delimiter = ","
 	}
 
-	//checking for backward compatibility
+	// checking for backward compatibility
 	if !cfg.IgnoreHeader {
 		_, err = f.WriteString(strings.Join(dbt.Cols, cfg.Delimiter) + "\n")
 		if err != nil {

@@ -2,9 +2,10 @@ package dbtable
 
 import (
 	"fmt"
-	"github.com/olekukonko/tablewriter"
 	"os"
 	"sort"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 type DBTable struct {

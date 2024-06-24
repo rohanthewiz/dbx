@@ -2,10 +2,12 @@ package bench
 
 import (
 	"database/sql"
-	"dbx/dbtable"
-	"dbx/queryops"
-	"github.com/rohanthewiz/serr"
+	"dbx/core/dbquery"
+	"dbx/core/dbtable"
+	"dbx/report"
 	"time"
+
+	"github.com/rohanthewiz/serr"
 )
 
 func RunQueryLoop(dbType string, columnar bool, query string, db *sql.DB, queryDescr string,
@@ -14,12 +16,12 @@ func RunQueryLoop(dbType string, columnar bool, query string, db *sql.DB, queryD
 	const pauseTime = 1 * time.Second
 
 	for i := 0; i < runs; i++ {
-		_, stats, err := queryops.QueryResultsAsDBTable(db, query)
+		_, stats, err := dbquery.QueryResultsAsDBTable(db, query)
 		if err != nil {
 			return serr.Wrap(err, "error querying "+dbType)
 		}
 
-		err = queryops.AppendRunStats(dbType, columnar, queryDescr, i+1, statsTbl, stats)
+		err = report.AppendRunStats(dbType, columnar, queryDescr, i+1, statsTbl, stats)
 		if err != nil {
 			return serr.Wrap(err, "error appending to Run stats "+dbType)
 		}
