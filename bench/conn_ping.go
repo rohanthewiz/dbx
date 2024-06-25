@@ -16,6 +16,7 @@ func connectAndPing(opts cfg.Options) (*sql.DB, error) {
 		User:     opts.User,
 		Password: opts.Password,
 		DBName:   opts.DBName,
+		UseSSL:   opts.UseSSL,
 	}
 
 	db, err := dbase.Connect(dbCfg)

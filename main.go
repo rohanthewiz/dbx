@@ -11,6 +11,11 @@ import (
 )
 
 func main() {
+	logger.InitLog(logger.LogConfig{
+		LogLevel: "debug",
+	})
+	defer logger.CloseLog()
+
 	opts, err := cfg.GetAndValidateCmdLineOpts()
 	if err != nil {
 		handleError(serr.Wrap(err, "Options validation failed"))

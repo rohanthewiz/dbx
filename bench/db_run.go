@@ -3,15 +3,13 @@ package bench
 import (
 	"dbx/cfg"
 	"dbx/report"
+	"os"
 
 	"github.com/rohanthewiz/logger"
 	"github.com/rohanthewiz/serr"
 )
 
 func ExerciseDB(opts cfg.Options) (err error) {
-	const myQuery = `your query here` // TODO: Replace with your query
-	const nbrOfRuns = 12
-
 	db, err := connectAndPing(opts)
 	if err != nil {
 		return serr.Wrap(err)
@@ -25,9 +23,13 @@ func ExerciseDB(opts cfg.Options) (err error) {
 		columnarOn, err = IsColumnarEngineOn(db)
 	}
 
-	query := myQuery
-	queryDescr := "My Query Description" // TODO: Replace with your query description
+	queryDescr := opts.QueryDescr
+	query, err := getQueryFromFile(opts.QueryPath)
+	if err != nil {
+		return serr.Wrap(err)
+	}
 
+	// Turn on columnar engine etc, for AlloyDB
 	if opts.DBType == cfg.AlloyDBtype && opts.Columnar {
 		if !columnarOn {
 			err = alterSystemForColumnar(db)
@@ -44,7 +46,7 @@ func ExerciseDB(opts cfg.Options) (err error) {
 			return serr.Wrap(err)
 		}
 
-		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, nbrOfRuns)
+		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, opts.NbrOfRuns)
 		if err != nil {
 			return serr.Wrap(err)
 		}
@@ -62,7 +64,7 @@ func ExerciseDB(opts cfg.Options) (err error) {
 			}
 		}
 
-		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, nbrOfRuns)
+		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, opts.NbrOfRuns)
 		if err != nil {
 			return serr.Wrap(err)
 		}
@@ -76,4 +78,12 @@ func ExerciseDB(opts cfg.Options) (err error) {
 	}
 
 	return
+}
+
+func getQueryFromFile(queryPath string) (query string, err error) {
+	qryBytes, err := os.ReadFile(queryPath)
+	if err != nil {
+		return query, serr.Wrap(err, "Unable to read query from file", "file", queryPath)
+	}
+	return string(qryBytes), nil
 }
