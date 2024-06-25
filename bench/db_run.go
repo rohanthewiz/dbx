@@ -2,39 +2,35 @@ package bench
 
 import (
 	"dbx/cfg"
-	"dbx/dbase"
-	"dbx/queryops"
+	"dbx/report"
+	"os"
+
 	"github.com/rohanthewiz/logger"
 	"github.com/rohanthewiz/serr"
 )
 
 func ExerciseDB(opts cfg.Options) (err error) {
-	port := "5432"
-	if opts.DBType == cfg.AlloyDBtype {
-		port = "5434"
-	}
-
-	columnarRequested := opts.DBType == cfg.AlloyDBtype && opts.UseColumnar
-
-	db, err := connectAndPing(opts.DBType, port, err)
+	db, err := connectAndPing(opts)
 	if err != nil {
 		return serr.Wrap(err)
 	}
 
-	version, err := dbase.GetDBVersion(db)
-	logger.Info("DB: " + version)
-
-	statsTbl := queryops.CreateStatsDBTable()
+	// Create a table to store the report
+	statsTbl := report.CreateStatsDBTable()
 
 	columnarOn := false
 	if opts.DBType == cfg.AlloyDBtype {
 		columnarOn, err = IsColumnarEngineOn(db)
 	}
 
-	query := SimpleGroupByQuery
-	queryDescr := "Simple GroupBy Query"
+	queryDescr := opts.QueryDescr
+	query, err := getQueryFromFile(opts.QueryPath)
+	if err != nil {
+		return serr.Wrap(err)
+	}
 
-	if columnarRequested {
+	// Turn on columnar engine etc, for AlloyDB
+	if opts.DBType == cfg.AlloyDBtype && opts.Columnar {
 		if !columnarOn {
 			err = alterSystemForColumnar(db)
 			if err != nil {
@@ -50,7 +46,7 @@ func ExerciseDB(opts cfg.Options) (err error) {
 			return serr.Wrap(err)
 		}
 
-		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, 12)
+		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, opts.NbrOfRuns)
 		if err != nil {
 			return serr.Wrap(err)
 		}
@@ -67,7 +63,8 @@ func ExerciseDB(opts cfg.Options) (err error) {
 				return serr.Wrap(err)
 			}
 		}
-		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, 12)
+
+		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, opts.NbrOfRuns)
 		if err != nil {
 			return serr.Wrap(err)
 		}
@@ -81,4 +78,12 @@ func ExerciseDB(opts cfg.Options) (err error) {
 	}
 
 	return
+}
+
+func getQueryFromFile(queryPath string) (query string, err error) {
+	qryBytes, err := os.ReadFile(queryPath)
+	if err != nil {
+		return query, serr.Wrap(err, "Unable to read query from file", "file", queryPath)
+	}
+	return string(qryBytes), nil
 }

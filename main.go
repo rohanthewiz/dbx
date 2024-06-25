@@ -3,15 +3,20 @@ package main
 import (
 	"dbx/bench"
 	"dbx/cfg"
+	"os"
+
 	_ "github.com/lib/pq"
 	"github.com/rohanthewiz/logger"
 	"github.com/rohanthewiz/serr"
-	"os"
-	"strings"
 )
 
 func main() {
-	opts, err := getAndValidateOptions()
+	logger.InitLog(logger.LogConfig{
+		LogLevel: "debug",
+	})
+	defer logger.CloseLog()
+
+	opts, err := cfg.GetAndValidateCmdLineOpts()
 	if err != nil {
 		handleError(serr.Wrap(err, "Options validation failed"))
 	}
@@ -20,19 +25,6 @@ func main() {
 	if err != nil {
 		handleError(serr.Wrap(err))
 	}
-}
-
-func getAndValidateOptions() (opts cfg.Options, err error) {
-	opts = cfg.GetOptions()
-
-	switch opts.DBType {
-	case cfg.AlloyDBtype:
-	case cfg.PGDBType:
-	default:
-		return opts, serr.New("You must specify a known db type", "options",
-			strings.Join([]string{cfg.PGDBType, cfg.AlloyDBtype}, ", "))
-	}
-	return
 }
 
 func handleError(err error) {

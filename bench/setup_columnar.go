@@ -2,8 +2,7 @@ package bench
 
 import (
 	"database/sql"
-	"dbx/dbquery"
-	"dbx/queryops"
+	"dbx/core/dbquery"
 	"fmt"
 
 	"github.com/rohanthewiz/serr"
@@ -22,41 +21,40 @@ func alterSystemForColumnar(db *sql.DB) (err error) {
 	return
 }
 
-// TODO - Tell what columns to optimize
 func preSetupColumnar(db *sql.DB) (err error) {
 	qry := "SHOW google_columnar_engine.enabled"
-	err = queryops.ExecQueryWithPrint(db, qry)
+	err = dbquery.ExecQueryWithPrint(db, qry)
 	if err != nil {
 		return serr.Wrap(err)
 	}
 
 	qry = "SHOW max_parallel_workers"
-	err = queryops.ExecQueryWithPrint(db, qry)
+	err = dbquery.ExecQueryWithPrint(db, qry)
 	if err != nil {
 		return serr.Wrap(err)
 	}
 
 	qry = "SHOW max_parallel_workers_per_gather"
-	err = queryops.ExecQueryWithPrint(db, qry)
+	err = dbquery.ExecQueryWithPrint(db, qry)
 	if err != nil {
 		return serr.Wrap(err)
 	}
 
 	// Don't auto recommend
 	qry = "SET google_columnar_engine.enable_columnar_scan=on;"
-	err = queryops.ExecQuery(db, qry)
+	err = dbquery.ExecQuery(db, qry)
 	if err != nil {
 		return serr.Wrap(err)
 	}
 
 	qry = "SHOW google_columnar_engine.enable_auto_columnarization"
-	err = queryops.ExecQueryWithPrint(db, qry)
+	err = dbquery.ExecQueryWithPrint(db, qry)
 	if err != nil {
 		return serr.Wrap(err)
 	}
 
 	qry = `SELECT google_columnar_engine_add('my_schema.my_table')`
-	err = queryops.ExecQuery(db, qry)
+	err = dbquery.ExecQuery(db, qry)
 	if err != nil {
 		return serr.Wrap(err)
 	}
@@ -65,16 +63,10 @@ func preSetupColumnar(db *sql.DB) (err error) {
 }
 
 func columnarStats(db *sql.DB) (err error) {
-	/*	qry := "SELECT google_columnar_engine_recommend()"
-		err = queryops.ExecQueryWithPrint(db, qry)
-		if err != nil {
-			return serr.Wrap(err)
-		}
-	*/
 	qry := `SELECT relation_name, block_count_in_cc, total_block_count,
        block_count_in_cc=total_block_count as counts_equal
 	 	from g_columnar_relations order by 1`
-	err = queryops.ExecQueryWithPrint(db, qry)
+	err = dbquery.ExecQueryWithPrint(db, qry)
 	if err != nil {
 		return serr.Wrap(err)
 	}

@@ -1,34 +1,11 @@
-package queryops
+package report
 
 import (
-	"database/sql"
-	"dbx/dbquery"
-	"dbx/dbtable"
-	"fmt"
+	"dbx/core/dbquery"
+	"dbx/core/dbtable"
+
 	"github.com/rohanthewiz/serr"
 )
-
-func QueryResultsAsDBTable(db *sql.DB, query string) (dbt *dbtable.DBTable, stats dbquery.Stats, err error) {
-	data, columnTypes, stats, err := dbquery.DBQuery(db, query)
-	if err != nil {
-		return dbt, stats, serr.Wrap(err)
-	}
-
-	fmt.Println(stats.String())
-
-	var cols []string
-	for _, ct := range columnTypes {
-		cols = append(cols, ct.Name())
-	}
-
-	dbt = dbtable.NewDBTable(cols...)
-	err = dbt.AddRows(data)
-	if err != nil {
-		return dbt, stats, serr.Wrap(err)
-	}
-
-	return
-}
 
 func CreateStatsDBTable() (statsTbl *dbtable.DBTable) {
 	cols := []string{"DB", "Columnar", "Query Type", "Run Nbr", "Query Time", "Fetch Time", "Total Time", "Total Rows"}
