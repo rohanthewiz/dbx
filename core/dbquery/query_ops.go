@@ -20,13 +20,13 @@ func ExecQuery(db *sql.DB, qry string) (err error) {
 
 // execQueryWithPrint can be used when we don't care about any data returned
 func ExecQueryWithPrint(db *sql.DB, qry string) (err error) {
-	fmt.Println("## Query: ", strutils.Truncate(qry, 120, false))
+	fmt.Println("\n### Query: ", strutils.Truncate(qry, 220, false))
 
 	dbt, _, err := QueryResultsAsDBTable(db, qry)
 	if err != nil {
 		return serr.Wrap(err)
 	}
-	dbt.PrettyPrint()
+	dbt.PrettyPrint(dbtable.PrintOpts{Limit: 50})
 	return
 }
 
@@ -36,7 +36,8 @@ func QueryResultsAsDBTable(db *sql.DB, query string) (dbt *dbtable.DBTable, stat
 		return dbt, stats, serr.Wrap(err)
 	}
 
-	fmt.Println(stats.String())
+	fmt.Print(".")
+	// fmt.Println(stats.String()) // per row result
 
 	var cols []string
 	for _, ct := range columnTypes {
