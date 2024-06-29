@@ -3,5 +3,6 @@
 
 dbx
 
-pg_results.csv
-alloydb_results.csv
+# Preserve the results folder
+results/*
+!results/.keep
