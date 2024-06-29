@@ -1,7 +1,8 @@
 # DBX - Database Explorer
 
 DBX is a simple tool to programmatically explore databases by running adhoc and benchmark queries.
-Results are collected into an in-memory table and can be pretty printed or exported to CSV
+Results are collected into an in-memory table and can be pretty printed or exported to CSV.
+The `bench/db_run.go` file is the main "script".
 
 ## Setup
 1. Make sure you have Go >= 1.21.0 installed https://go.dev/doc/install. 
