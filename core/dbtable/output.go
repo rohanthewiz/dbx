@@ -18,33 +18,30 @@ const (
 
 // FileConfig ... structure to store files info
 type FileConfig struct {
-	FileNamePattern string // Only for CSV reading: instead of exact name we can use pattern. Pattern supposed to find one file only
-	FileName        string // Name of File which was supposed to read/write. If pattern is provided while reading for csv, then FileName should be empty
-	Delimiter       string // Delimter to read/write file
-	Limit           int64  // Optional: while reading, this will be used to read top n records from file
-	NoQuotedStrings bool   // While creating if value is false, text type values will be written without quotes (")
-	CreateEmptyFile bool   // Optional: while writing if this flag enabled it will write cols as headers even rows are 0
-	FileCreateMode  string // Optional: Default: Writeonly. while writing will be used if needed to
-	IgnoreHeader    bool   // Optional: Default: false. while writing, if set true, WriterPlugin will not create header using columns
+	FileNamePattern string // Instead of FileName we can use a pattern
+	FileName        string // File name to read/write
+	Delimiter       string
+	Limit           int64  // take first n records
+	NoQuotedStrings bool   // Indicates whether or not text values should be quoted
+	CreateEmptyFile bool   // Optional: will write headers only when there are no rows
+	FileCreateMode  string // Optional: Default: FILE_CREATE_RDWR
+	IgnoreHeader    bool
 }
 
 func (dbt *DBTable) WriteCSV(cfg *FileConfig) (err error) {
-	/*	if IsTableEmpty(dbTbl) && !cfg.CreateEmptyFile && dbTbl != nil {
-			log.Error("Table is empty or nil", log.Pairs{"file": cfg.FileName})
-			return
+	/*	if IsTableEmpty(dbTbl) && !cfg.CreateEmptyFile {
+			return serr.Wrap("The table is empty")
 		}
 	*/
 	var f *os.File
 	switch strings.ToLower(cfg.FileCreateMode) {
 	case FILE_CREATE_APPEND:
-		// logger.Info("File being created in Append mode", log.Pairs{"filename": cfg.FileName})
-		f, err = os.OpenFile(cfg.FileName, os.O_WRONLY|os.O_APPEND, 0644)
-		// case FILE_CREATE_WRONLY:
-		// log.Info("File being created in Writeonly mode", log.Pairs{"filename": cfg.FileName})
-		// f, err = os.OpenFile(cfg.FileName, os.O_WRONLY, 0600)
+		f, err = os.OpenFile(cfg.FileName, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	case FILE_CREATE_WRONLY:
+		f, err = os.OpenFile(cfg.FileName, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 	default:
 		// log.Info("File being created in Writeonly mode", log.Pairs{"filename": cfg.FileName})
-		f, err = os.OpenFile(cfg.FileName, os.O_WRONLY, 0600)
+		f, err = os.OpenFile(cfg.FileName, os.O_CREATE|os.O_RDWR, 0644)
 	}
 
 	if os.IsNotExist(err) {
