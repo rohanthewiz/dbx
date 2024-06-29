@@ -8,11 +8,12 @@ import (
 	"github.com/rohanthewiz/serr"
 )
 
+// Hmm, seems like we can't alter system like this --just use psql for now
 func alterSystemForColumnar(db *sql.DB) (err error) {
 	qry := `alter system set google_columnar_engine.enabled=on;
       alter system set google_columnar_engine.memory_size_in_mb=8192;
       alter system set max_parallel_workers_per_gather=2;
-      alter system set max_parallel_workers=8;
+      alter system set max_parallel_workers=12;
       `
 	_, err = db.Exec(qry)
 	if err != nil {
@@ -62,21 +63,34 @@ func preSetupColumnar(db *sql.DB) (err error) {
 	return
 }
 
-func columnarStats(db *sql.DB) (err error) {
-	qry := `SELECT relation_name, block_count_in_cc, total_block_count,
-       block_count_in_cc=total_block_count as counts_equal
+func callRecommend(db *sql.DB) (err error) {
+	qry := "SELECT google_columnar_engine_recommend();"
+	err = dbquery.ExecQueryWithPrint(db, qry)
+	if err != nil {
+		return serr.Wrap(err)
+	}
+
+	return
+}
+
+func printColumnarStats(db *sql.DB) (err error) {
+	qry := `SELECT * FROM google_columnar_engine_recommend(mode => 'RECOMMEND_SIZE');`
+	err = dbquery.ExecQueryWithPrint(db, qry)
+	if err != nil {
+		return serr.Wrap(err)
+	}
+
+	qry = `SELECT relation_name, block_count_in_cc, total_block_count,
+       block_count_in_cc=total_block_count as counts_equal, size,
+    auto_refresh_trigger_count, 
+    auto_refresh_failure_count as auto_refresh_fails,
+    auto_refresh_recent_status as auto_refresh_status
 	 	from g_columnar_relations order by 1`
 	err = dbquery.ExecQueryWithPrint(db, qry)
 	if err != nil {
 		return serr.Wrap(err)
 	}
 
-	/*	qry = `SELECT * FROM google_columnar_engine_recommend(mode => 'RECOMMEND_SIZE');`
-		err = queryops.ExecQueryWithPrint(db, qry)
-		if err != nil {
-			return serr.Wrap(err)
-		}
-	*/
 	return
 }
 

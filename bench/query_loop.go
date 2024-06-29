@@ -5,6 +5,7 @@ import (
 	"dbx/core/dbquery"
 	"dbx/core/dbtable"
 	"dbx/report"
+	"fmt"
 	"time"
 
 	"github.com/rohanthewiz/serr"
@@ -12,9 +13,9 @@ import (
 
 func RunQueryLoop(dbType string, columnar bool, query string, db *sql.DB, queryDescr string,
 	statsTbl *dbtable.DBTable, runs int) (err error) {
-
 	const pauseTime = 1 * time.Second
 
+	fmt.Println("### Running Query loop")
 	for i := 0; i < runs; i++ {
 		_, stats, err := dbquery.QueryResultsAsDBTable(db, query)
 		if err != nil {
