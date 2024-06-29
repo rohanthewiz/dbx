@@ -2,12 +2,15 @@ package bench
 
 import (
 	"dbx/cfg"
+	"dbx/core/dbquery"
+	"dbx/core/dbtable"
 	"dbx/report"
 	"os"
 
-	"github.com/rohanthewiz/logger"
 	"github.com/rohanthewiz/serr"
 )
+
+const explainPrefix = "EXPLAIN (ANALYZE,COSTS OFF,BUFFERS,TIMING OFF,SUMMARY OFF) "
 
 func ExerciseDB(opts cfg.Options) (err error) {
 	db, err := connectAndPing(opts)
@@ -30,49 +33,55 @@ func ExerciseDB(opts cfg.Options) (err error) {
 	}
 
 	// Turn on columnar engine etc, for AlloyDB
-	if opts.DBType == cfg.AlloyDBtype && opts.Columnar {
-		if !columnarOn {
-			err = alterSystemForColumnar(db)
-			if err != nil {
-				return serr.Wrap(err, "error trying to turn columnar engine on")
-			}
-			logger.Warn("Columnar changes require a DB restart",
-				"cmd to run", "sudo alloydb database-server stop && sudo alloydb database-server start")
-			return serr.New("AlloyDB must now be restarted")
-		}
+	if opts.DBType == cfg.AlloyDBtype {
+		// Let's do system alters from psql for now
+		// err = alterSystemForColumnar(db)
 
 		err = preSetupColumnar(db)
 		if err != nil {
 			return serr.Wrap(err)
 		}
 
+		// First Batch
 		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, opts.NbrOfRuns)
 		if err != nil {
 			return serr.Wrap(err)
 		}
 
-		err = columnarStats(db)
+		// ---------------------------
+		// Call Auto Recommend
+		if err = callRecommend(db); err != nil {
+			return serr.Wrap(err, "error calling auto columnarization")
+		}
+		// ---------------------------
+
+		// Run some more
+		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, opts.NbrOfRuns)
+		if err != nil {
+			return serr.Wrap(err)
+		}
+
+		err = printColumnarStats(db)
 		if err != nil {
 			return serr.Wrap(err, "error getting columnar stats")
 		}
 
-	} else { // columnar not requested but could be previously on
-		if opts.DBType == cfg.AlloyDBtype {
-			err = preSetupColumnar(db)
-			if err != nil {
-				return serr.Wrap(err)
-			}
-		}
-
+	} else { // Just run the loop for Postgres
 		err = RunQueryLoop(opts.DBType, columnarOn, query, db, queryDescr, statsTbl, opts.NbrOfRuns)
 		if err != nil {
 			return serr.Wrap(err)
 		}
 	}
 
+	// Explain how we would run the query now
+	err = dbquery.ExecQueryWithPrint(db, explainPrefix+query)
+	if err != nil {
+		return serr.Wrap(err, "error explaining the query")
+	}
+
 	// Dump Results
-	statsTbl.PrettyPrint()
-	err = statsTbl.QuickCSV(opts.DBType + "_results.csv")
+	statsTbl.PrettyPrint(dbtable.PrintOpts{Limit: 50})
+	err = statsTbl.QuickCSV("results/" + opts.DBType + "_results.csv")
 	if err != nil {
 		return serr.Wrap(err, "Unable to output stats CSV for "+opts.DBType)
 	}
